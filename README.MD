@@ -1,5 +1,5 @@
 # Template Spring Boot 3.3.2 con JWT
-# =========================================
+
 ![JWT](https://img.shields.io/badge/JWT-Authentication-blue?logo=jsonwebtokens&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.2-6DB33F?logo=springboot&logoColor=white)
 ![Java](https://img.shields.io/badge/Java%20JDK-21-007396?logo=openjdk&logoColor=white)
