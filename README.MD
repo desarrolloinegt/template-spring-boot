@@ -7,9 +7,9 @@
 
 ## :arrow_down: Instalación y ejecución
 
-1. Clona el repositorio:
-   ```bash
-   git clone https://github.com/desarrolloinegt/template-spring-boot.git
+1. Descarga de la plantilla:
+    ```
+    Ve al boton de <> Code y selecciona Descargar ZIP.
     ```
 
 2. Navega al directorio del proyecto:
@@ -18,6 +18,15 @@
    ```
 
 3. Crear el archivo `.env` en la raiz del proyecto
+
+   ```Diff
+    template-spring-boot/
+       ├─ .mvn/
+       ├─ src/
+       ├─ pom.xml
+      +├─ .env        # variables de entorno (raíz del proyecto)
+       └─ README.md
+   ```
 
 4. Correr el comando para compilar y ejecutar la aplicación:
    ```bash
@@ -100,10 +109,42 @@ src
 Este proyecto expone su documentación con **Swagger (springdoc-openapi)**.  
 La activación se controla con la variable de entorno:
 
+Para ejemplo de como se configura el controlador para los endpoints de swagger, puede ir a la clase `UserController.java`
+
 ```bash
 SWAGGER_ENABLED=true   # Activa Swagger
 SWAGGER_ENABLED=false  # Desactiva Swagger
 ```
+
+### Para su configuración debe ir a la clase `OpenApiConfig.java`
+
+```diff
+ src/
+ └─ main/
+    └─ java/
+       └─ com/
+          └─ ine/
+             └─ development/
+                ├─ common/
+                ├─ components/
+                └─ config/
++                  ├── OpenApiConfig.java        # <- aquí
+                   ├── EnvConfig.java
+                   ├── OpenApiSecurityConfig.java
+                   ├── PepperingConfig.java
+                   └── SecurityConfig.java
+                ├─ controllers/
+                ├─ models/
+                ├─ repositories/
+                ├─ services/
+                ├─ DevelopmentApplication.java
+                └─ ServletInitializer.java
+ resources/
+ └─ application.properties
+ test/
+```
+
+Por cada controlador nuevo que cree, debe ir a la clase `OpenApiConfig.java` y debe agregar la ruta puesta en el controlador.
 
 > [!WARNING]
 > Por defecto está desactivado siempre.
