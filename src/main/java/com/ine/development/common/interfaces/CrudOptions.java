@@ -9,7 +9,6 @@ import java.util.List;
  * @param <ID> el tipo del identificador de la entidad.
  * @param <C>  el tipo del payload para la creación.
  * @param <U>  el tipo del payload para la actualización.
- * @param <D>  el tipo del payload para la desactivación.
  */
 public interface CrudOptions<E, ID, C, U> {
     E create(C payload);
