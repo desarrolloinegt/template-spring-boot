@@ -28,7 +28,7 @@ public class AuthService {
     @Transactional(readOnly = true)
     public User authenticate(String login, String rawPassword) {
         User user = findByLogin(login);
-        if (!passwordEncoder.matches(rawPassword, user.getPasswordHash())) {
+        if (!passwordEncoder.matches(rawPassword, user.getPassword())) {
             throw new BadCredentialsException("Credenciales inválidas.");
         }
         return user;
@@ -39,7 +39,7 @@ public class AuthService {
         boolean isEmail = login.contains("@");
         return (isEmail
                 ? userRepository.findByEmail(login)
-                : userRepository.findByUsername(login))
+                : userRepository.findByName(login))
                 .orElseThrow(() -> new BadCredentialsException("Credenciales inválidas."));
     }
 }

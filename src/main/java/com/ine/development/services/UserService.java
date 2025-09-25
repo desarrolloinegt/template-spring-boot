@@ -4,12 +4,13 @@ import com.ine.development.common.interfaces.CrudOptions;
 import com.ine.development.common.interfaces.OnCreate;
 import com.ine.development.common.interfaces.OnUpdate;
 import com.ine.development.models.User;
-import com.ine.development.models.dto.DisableRequest;
-import com.ine.development.models.dto.UserRequest;
+import com.ine.development.models.dto.UserDto;
 import com.ine.development.repositories.UserRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -17,8 +18,15 @@ import org.springframework.validation.annotation.Validated;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.ine.development.common.Updaters.*;
+
+/**
+ * Servicio para la gestión de usuarios.
+ * Implementa las operaciones CRUD definidas en la interfaz CrudOptions.
+ */
 @Service
-public class UserService implements CrudOptions<User, Long, UserRequest, UserRequest, DisableRequest> {
+@RequiredArgsConstructor
+public class UserService implements CrudOptions<User, Long, UserDto, UserDto> {
 
     @PersistenceContext
     private EntityManager em;
@@ -26,15 +34,10 @@ public class UserService implements CrudOptions<User, Long, UserRequest, UserReq
     private final AuthService authService;
     private final UserRepository userRepository;
 
-    public UserService(AuthService authService, UserRepository userRepository) {
-        this.authService = authService;
-        this.userRepository = userRepository;
-    }
-
     @Override
     @Transactional(readOnly = true)
     public User findById(Long id) {
-        return userRepository.findByUserIdAndIsDelete(id, 0)
+        return userRepository.findByIdAndStatus(id, 1)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
     }
 
@@ -42,30 +45,27 @@ public class UserService implements CrudOptions<User, Long, UserRequest, UserReq
     @Transactional(readOnly = true)
     public List<User> findAll(Integer... status) {
         if (status == null || status.length == 0) {
-            return userRepository.findByIsActiveAndIsDelete(1, 0);
+            return userRepository.findAllActive();
         }
         if (status.length == 1) {
-            return userRepository.findByIsActiveAndIsDelete(status[0], 0);
+            Integer s = (status[0] == null) ? 1 : status[0];
+            return userRepository.findByStatus(s);
         }
-        return userRepository.findByIsActiveInAndIsDelete(Arrays.asList(status), 0);
+        List<Integer> listStatus = Arrays.stream(status)
+                .map(s -> s == null ? 1 : s)
+                .distinct()
+                .toList();
+        return userRepository.findByStatusIn(listStatus);
     }
 
 
     @Override
     @Transactional
     @Validated(OnCreate.class)
-    public User create(@Valid UserRequest user) {
-        if (userRepository.existsByUsername(user.username())) {
-            throw new IllegalArgumentException("El usuario que ingresó ya existe.");
-        }
-        if (userRepository.existsByEmail(user.email())) {
-            throw new IllegalArgumentException("El correo que ingresó ya existe.");
-        }
-
+    public User create(@Valid UserDto user) {
+        validateEmailAndUsername(null, user.email(), user.name());
         User newUser =  new User();
-        newUser.setUsername(user.username());
-        newUser.setEmail(user.email());
-        newUser.setPasswordHash(authService.encodePassword(user.password()));
+        applyPatch(newUser, user);
         User saved = userRepository.save(newUser);
         em.flush();
         em.refresh(saved);
@@ -75,27 +75,10 @@ public class UserService implements CrudOptions<User, Long, UserRequest, UserReq
     @Override
     @Transactional
     @Validated(OnUpdate.class)
-    public User update(Long id, @Valid UserRequest req) {
-        User u = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
-
-        if (req.username() != null && !req.username().equals(u.getUsername())) {
-            if (userRepository.existsByUsernameAndUserIdNot(req.username(), id)) {
-                throw new IllegalArgumentException("El usuario que ingresó ya existe.");
-            }
-            u.setUsername(req.username());
-        }
-
-        if (req.email() != null && !req.email().equals(u.getEmail())) {
-            if (userRepository.existsByEmailAndUserIdNot(req.email(), id)) {
-                throw new IllegalArgumentException("El correo que ingresó ya existe.");
-            }
-            u.setEmail(req.email());
-        }
-
-        if (req.password() != null && !req.password().isBlank()) {
-            u.setPasswordHash(authService.encodePassword(req.password()));
-        }
+    public User update(Long id, @Valid UserDto req) {
+        User u = findById(id);
+        validateEmailAndUsername(id, req.email(), req.name());
+        applyPatch(u, req);
         em.flush();
         em.refresh(u);
         return u;
@@ -104,21 +87,49 @@ public class UserService implements CrudOptions<User, Long, UserRequest, UserReq
     @Override
     @Transactional
     @Validated(OnUpdate.class)
-    public User disable(Long id, @Valid DisableRequest req) {
-        User u = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
-
-        if (req.isActive() != null) {
-            u.setIsActive(req.isActive());
-        }
-
-        if (req.isDelete() != null) {
-            u.setIsDelete(req.isDelete());
-        }
-
+    public void disable(Long id) {
+        User u = findById(id);
+        u.setStatus(0);
         em.flush();
         em.refresh(u);
-        return u;
+    }
+
+    /**
+     * Aplica los cambios de un DTO a una entidad User.
+     *
+     * @param user Entidad User a modificar.
+     * @param req  DTO con los datos a aplicar.
+     */
+    private void applyPatch(User user, UserDto req) {
+        setIfNonNull(req.name(), user::setName);
+        setIfNonNull(req.email(), user::setEmail);
+        setIfNonNull(req.phone(), user::setPhone);
+        setIfNonNull(req.password(), password -> user.setPassword(authService.encodePassword(password)) );
+    }
+
+    /**
+     * Valida que el correo y el nombre de usuario no estén en uso.
+     *
+     * @param id    ID del usuario (puede ser nulo para creación).
+     * @param email Correo a validar.
+     * @param name  Nombre de usuario a validar.
+     * @throws IllegalArgumentException Si el correo o el nombre ya están en uso.
+     */
+    private void validateEmailAndUsername(@Nullable Long id, String email, String name) {
+        String u = name == null ? null : name.trim();
+        String e = email == null ? null : email.trim().toLowerCase();
+
+        if (u != null && (id == null
+                ? userRepository.existsByName(u)
+                : userRepository.existsByNameAndIdNot(u, id))) {
+            throw new IllegalArgumentException("El usuario que ingresó ya existe.");
+        }
+
+        if (e != null && (id == null
+                ? userRepository.existsByEmail(e)
+                : userRepository.existsByEmailAndIdNot(e, id))) {
+            throw new IllegalArgumentException("El correo que ingresó ya existe.");
+        }
     }
 
 }

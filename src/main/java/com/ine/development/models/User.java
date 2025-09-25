@@ -20,36 +20,35 @@ import org.hibernate.annotations.CreationTimestamp;
 public class User {
 
     @Id
-    @Column(name = "user_id")
+    @Column(name = "id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    private Long userId;
+    private Long id;
 
-    @Column(name = "username", unique = true, nullable = false)
-    private String username;
+    @Column(name = "name", unique = true, nullable = false)
+    private String name;
 
     @Column(name = "email", unique = true, nullable = false)
     private String email;
 
+    @Column(name = "phone", nullable = false)
+    private String phone;
+
     @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    @Column(name = "password_hash", nullable = false)
-    private String passwordHash;
+    @Column(name = "password", nullable = false)
+    private String password;
 
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    @Column(name = "is_active", nullable = false, insertable = false)
-    private int isActive;
-
-    @JsonIgnore
-    @Column(name = "is_delete", nullable = false, insertable = false)
-    private int isDelete;
+    @Column(name = "status", nullable = false, insertable = false)
+    private int status;
 
     @CreationTimestamp
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    @Column(name = "created", nullable = false, insertable = false)
-    private LocalDateTime created;
+    @Column(name = "created_at", nullable = false, insertable = false)
+    private LocalDateTime createdAt;
 
     @CreationTimestamp
     @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    @Column(name = "updated", nullable = false, insertable = false)
-    private LocalDateTime updated;
+    @Column(name = "updated_at", nullable = false, insertable = false)
+    private LocalDateTime updatedAt;
 }
