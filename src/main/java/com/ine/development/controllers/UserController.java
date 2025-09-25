@@ -5,8 +5,7 @@ import com.ine.development.common.dto.ApiResponse;
 import com.ine.development.common.interfaces.OnCreate;
 import com.ine.development.common.interfaces.OnUpdate;
 import com.ine.development.models.User;
-import com.ine.development.models.dto.DisableRequest;
-import com.ine.development.models.dto.UserRequest;
+import com.ine.development.models.dto.UserDto;
 import com.ine.development.services.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -33,12 +32,12 @@ public class UserController {
     @Operation(summary = "Listar usuarios", description = "Obtiene una lista de todos los usuarios. Se puede filtrar por estado (activo/inactivo).")
     @GetMapping
     public ResponseEntity<ApiResponse<List<User>>> findAllUsers(
-            @Parameter(description = "Estados a filtrar (0=Inactivo, 1=Activo). Ej: ?isActive=1,0")
-            @RequestParam(name = "isActive", required = false) List<Integer> isActive
+            @Parameter(description = "Estados a filtrar (0=Inactivo, 1=Activo). Ej: ?status=1,0")
+            @RequestParam(name = "status", required = false) List<Integer> status
     ) {
-        List<User> data = (isActive == null || isActive.isEmpty())
+        List<User> data = (status == null || status.isEmpty())
                 ? userServices.findAll()
-                : userServices.findAll(isActive.toArray(Integer[]::new));
+                : userServices.findAll(status.toArray(Integer[]::new));
 
         return ResponseFactory.ok("Usuarios obtenidos correctamente.", data);
     }
@@ -54,7 +53,7 @@ public class UserController {
 
     @Operation(summary = "Crear un usuario", description = "Crea un nuevo usuario.")
     @PostMapping
-    public ResponseEntity<ApiResponse<User>> create(@Validated(OnCreate.class) @RequestBody UserRequest req){
+    public ResponseEntity<ApiResponse<User>> create(@Validated(OnCreate.class) @RequestBody UserDto req){
         User saved = userServices.create(req);
         return ResponseFactory.createdWithBody("Usuario creado correctamente.", saved);
     }
@@ -65,7 +64,7 @@ public class UserController {
             @Parameter(description = "Actualiza por el id del usuario")
             @PathVariable Long id,
             @Validated(OnUpdate.class)
-            @RequestBody UserRequest req){
+            @RequestBody UserDto req){
         User updated = userServices.update(id, req);
         return ResponseFactory.ok("Usuario actualizado correctamente.", updated);
     }
@@ -74,10 +73,8 @@ public class UserController {
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<User>> updateStatus(
             @Parameter(description = "Deshabilita por el id del usuario")
-            @PathVariable Long id,
-            @Validated(OnUpdate.class)
-            @RequestBody DisableRequest req){
-        User updated = userServices.disable(id, req);
-        return ResponseFactory.ok("Usuario actualizado correctamente.", updated);
+            @PathVariable Long id){
+        userServices.disable(id);
+        return ResponseFactory.ok("Usuario deshabilitado correctamente.", null);
     }
 }

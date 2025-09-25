@@ -36,8 +36,8 @@ public class AuthController {
         User user = authService.authenticate(req.email(), req.password());
 
         String token = jwtService.generateToken(
-                String.valueOf(user.getUserId()),
-                Map.of("username", user.getUsername(), "email", user.getEmail())
+                String.valueOf(user.getId()),
+                Map.of("username", user.getName(), "email", user.getEmail())
         );
 
         Map<String, Object> payload = Map.of(

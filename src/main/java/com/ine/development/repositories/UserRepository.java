@@ -9,13 +9,13 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends BaseRepository<User, Long> {
 
-    boolean existsByUsername(String username);
+    boolean existsByName(String name);
     boolean existsByEmail(String email);
-    boolean existsByUsernameAndUserIdNot(String username, Long userId);
-    boolean existsByEmailAndUserIdNot(String email, Long userId);
+    boolean existsByNameAndIdNot(String name, Long id);
+    boolean existsByEmailAndIdNot(String email, Long id);
 
     Optional<User> findByEmail(String email);
-    Optional<User> findByUsername(String username);
-    Optional<User> findByUserIdAndIsDelete(Long id, Integer isDeleted);
+    Optional<User> findByName(String name);
+    Optional<User> findByIdAndStatus(Long id, Integer status);
 
 }
